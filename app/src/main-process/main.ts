@@ -282,14 +282,14 @@ async function handleCommandLineArguments(argv: string[]) {
     // we expect this call to have several parameters before the URL we want,
     // so we should filter out the program name as well as any parameters that
     // look like arguments to Electron
-    const argsWithoutParameters = args.filter(
+    const argsWithoutParameters = argv.filter(
       (a: string) => !a.endsWith('github-desktop') && !a.startsWith('--')
     )
     if (argsWithoutParameters.length > 0) {
       handleAppURL(argsWithoutParameters[0])
     }
-  } else if (args.length > 1) {
-    handleAppURL(args[1])
+  } else if (argv.length > 1) {
+    handleAppURL(argv[1])
     // If --protocol-launcher is present we always want to bail and not
     // risk a smuggled cli switch
     return
