@@ -4,7 +4,7 @@ import webpack from 'webpack'
 import merge from 'webpack-merge'
 import { getReplacements } from './app-info'
 
-export const externals = ['7zip']
+export const externals = ['7zip', 'windows-argv-parser']
 
 const outputDir = 'out'
 export const replacements = getReplacements()
@@ -30,6 +30,9 @@ const commonConfig: webpack.Configuration = {
         use: [
           {
             loader: 'ts-loader',
+            options: {
+              transpileOnly: true,
+            },
           },
         ],
         exclude: /node_modules/,

@@ -294,9 +294,18 @@ function moveAnalysisFiles() {
 function copyDependencies() {
   const pkg: Package = require(path.join(projectRoot, 'app', 'package.json'))
 
+  // On non-Windows platforms, exclude windows-argv-parser since its native
+  // module cannot be compiled outside of Windows
+  const platformExternals =
+    process.platform === 'win32'
+      ? externals
+      : externals.filter(e => e !== 'windows-argv-parser')
+
   const filterExternals = (dependencies: Record<string, string>) =>
     Object.fromEntries(
-      Object.entries(dependencies).filter(([k]) => externals.includes(k))
+      Object.entries(dependencies).filter(([k]) =>
+        platformExternals.includes(k)
+      )
     )
 
   // The product name changes depending on whether it's a prod build or dev
