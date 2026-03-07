@@ -157,6 +157,11 @@ export function getIconDirectory() {
   return join(projectRoot, 'app', 'static', 'logos', devOrProd)
 }
 
+export function getIconFileName(): string {
+  const baseName = 'icon-logo'
+  return getChannel() === 'development' ? `${baseName}-yellow` : baseName
+}
+
 export function getChannelFromReleaseBranch(): string {
   const branchName = process.env.GITHUB_HEAD_REF ?? ''
 

@@ -35,6 +35,7 @@ import {
   getDistArchitecture,
   getDistRoot,
   getExecutableName,
+  getIconFileName,
   isPublishable,
 } from './dist-info'
 
