@@ -62,6 +62,31 @@ Once you have a feed configured, run this command to install the application:
 sudo apt update && sudo apt install github-desktop
 ```
 
+## ✨ Smart Split — AI-Powered Commit Splitting
+
+This fork includes **Smart Split**, a feature that uses GitHub Copilot to automatically split your staged changes into clean, atomic commits.
+
+### How it works
+
+1. Stage your files as usual
+2. Click the **Copilot button** (✨) in the commit area and select **Smart Split**
+3. Copilot analyzes your diff and suggests multiple focused commits — each with its own summary, description, and file list
+4. Edit summaries and descriptions inline, reorder commits, toggle individual commits on/off
+5. Click **Commit** to create all selected commits at once
+
+### Custom commit format
+
+Click the **Format** button to define your own commit message template. Smart Split dynamically analyzes any format you provide:
+
+- `type(scope): description` — conventional commits
+- `dev/fix/chore(feature) : description` — option groups (AI picks one)
+- `[type] [scope] description` — bracket format
+- Any other structure you prefer
+
+The format is saved per-repository and persists across sessions.
+
+## I have a problem with GitHub Desktop
+
 ### Red Hat/CentOS/Fedora
 
 There are two RPM package feeds available, both hosted in the US. You only need

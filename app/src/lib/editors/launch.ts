@@ -5,8 +5,52 @@ import {
   expandTargetPathArgument,
   ICustomIntegration,
   parseCustomIntegrationArguments,
-  spawnCustomIntegration,
 } from '../custom-integration'
+
+async function launchEditor(
+  editorPath: string,
+  args: readonly string[],
+  editorName: string,
+  spawnAsDarwinApp: boolean
+) {
+  const exists = await pathExists(editorPath)
+  const label = __DARWIN__ ? 'Settings' : 'Options'
+  if (!exists) {
+    throw new ExternalEditorError(
+      `Could not find executable for ${editorName} at path '${editorPath}'. Please open ${label} and select an available editor.`,
+      { openPreferences: true }
+    )
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const opts: SpawnOptions = {
+      // Make sure the editor processes are detached from the Desktop app.
+      // Otherwise, some editors (like Notepad++) will be killed when the
+      // Desktop app is closed.
+      detached: true,
+      stdio: 'ignore',
+    }
+
+    const child = spawnAsDarwinApp
+      ? spawn('open', ['-a', editorPath, ...args], opts)
+      : spawn(editorPath, args, opts)
+
+    child.on('error', reject)
+    child.on('spawn', resolve)
+    child.unref() // Don't wait for editor to exit
+  }).catch((e: unknown) => {
+    log.error(
+      `Error while launching ${editorName}`,
+      e instanceof Error ? e : undefined
+    )
+    throw new ExternalEditorError(
+      e && typeof e === 'object' && 'code' in e && e.code === 'EACCES'
+        ? `GitHub Desktop doesn't have the proper permissions to start ${editorName}. Please open ${label} and try another editor.`
+        : `Something went wrong while trying to start ${editorName}. Please open ${label} and try another editor.`,
+      { openPreferences: true }
+    )
+  })
+}
 
 /**
  * Open a given file or folder in the desired external editor.
@@ -69,63 +113,20 @@ export async function launchExternalEditor(
  * @param fullPath A folder or file path to pass as an argument when launching the editor.
  * @param customEditor The external editor to launch.
  */
-export async function launchCustomExternalEditor(
+export const launchCustomExternalEditor = (
   fullPath: string,
   customEditor: ICustomIntegration
-): Promise<void> {
-  const editorPath = customEditor.path
-  const exists = await pathExists(editorPath)
-  const label = __DARWIN__ ? 'Settings' : 'Options'
-  if (!exists) {
-    throw new ExternalEditorError(
-      `Could not find executable for custom editor at path '${customEditor.path}'.  Please open ${label} and select an available editor.`,
-      { openPreferences: true }
-    )
-  }
-
-  const opts: SpawnOptions = {
-    // Make sure the editor processes are detached from the Desktop app.
-    // Otherwise, some editors (like Notepad++) will be killed when the
-    // Desktop app is closed.
-    detached: true,
-  }
-
+) => {
   const argv = parseCustomIntegrationArguments(customEditor.arguments)
 
   // Replace instances of RepoPathArgument with fullPath in customEditor.arguments
   const args = expandTargetPathArgument(argv, fullPath)
 
-  try {
-    // This logic around `usesShell` is also used in Windows `getAvailableEditors` implementation
-    const usesShell = editorPath.endsWith('.cmd')
-    if (usesShell) {
-      spawnCustomIntegration(editorPath, args, {
-        ...opts,
-        shell: true,
-      })
-    } else if (__DARWIN__ && customEditor.bundleID) {
-      // In macOS we can use `open` if it's an app (i.e. if we have a bundleID),
-      // which will open the right executable file for us, we only need the path
-      // to the editor .app folder.
-      spawnCustomIntegration('open', ['-a', editorPath, ...args], opts)
-    } else {
-      spawnCustomIntegration(editorPath, args, opts)
-    }
-  } catch (error) {
-    log.error(
-      `Error while launching custom editor at path ${customEditor.path} with arguments ${args}`,
-      error
-    )
-    if (error?.code === 'EACCES') {
-      throw new ExternalEditorError(
-        `GitHub Desktop doesn't have the proper permissions to start custom editor at path ${customEditor.path}. Please open ${label} and try another editor.`,
-        { openPreferences: true }
-      )
-    } else {
-      throw new ExternalEditorError(
-        `Something went wrong while trying to start custom editor at path ${customEditor.path}. Please open ${label} and try another editor.`,
-        { openPreferences: true }
-      )
-    }
-  }
+  // In macOS we can use `open` if it's an app (i.e. if we have a bundleID),
+  // which will open the right executable file for us, we only need the path
+  // to the editor .app folder.
+  const spawnAsDarwinApp = __DARWIN__ && customEditor.bundleID !== undefined
+  const editorName = `custom editor at path '${customEditor.path}'`
+
+  return launchEditor(customEditor.path, args, editorName, spawnAsDarwinApp)
 }
