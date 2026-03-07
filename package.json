@@ -51,7 +51,10 @@
     "yarn": ">= 1.9"
   },
   "resolutions": {
-    "@types/react-css-transition-replace/@types/react": "^16.14.62"
+    "@types/react-css-transition-replace/@types/react": "^16.14.62",
+    "@types/react-dom/@types/react": "^16.14.62",
+    "@types/react-transition-group/@types/react": "^16.14.62",
+    "@types/react-virtualized/@types/react": "^16.14.62"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.25.0",

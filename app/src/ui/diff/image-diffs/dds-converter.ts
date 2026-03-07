@@ -186,12 +186,12 @@ function drawToCanvas(
 }
 
 export function convertDDSImage(contents: ArrayBufferLike) {
-  const ddsData = parseDDS(contents)
+  const ddsData = parseDDS(contents as ArrayBuffer)
 
   // Get the first mipmap texture.
   const [image] = ddsData.images
   const [imageWidth, imageHeight] = image.shape
-  const imageData = new Uint8Array(contents, image.offset, image.length)
+  const imageData = new Uint8Array(contents as ArrayBuffer, image.offset, image.length)
 
   // Draw the DXT texture to the canvas using WebGL2.
   const canvas = document.createElement('canvas')
