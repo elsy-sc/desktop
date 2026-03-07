@@ -4,7 +4,6 @@
 import * as cp from 'child_process'
 import packager, { OsxNotarizeOptions } from 'electron-packager'
 import frontMatter from 'front-matter'
-import * as os from 'os'
 import * as path from 'path'
 import { getPrintenvzPath } from 'printenvz'
 import { getProxyCommandPath } from 'process-proxy'
@@ -36,7 +35,6 @@ import {
   getDistArchitecture,
   getDistRoot,
   getExecutableName,
-  getIconDirectory,
   isPublishable,
 } from './dist-info'
 
@@ -52,8 +50,6 @@ import {
 } from 'fs'
 import { updateLicenseDump } from './licenses/update-license-dump'
 import { verifyInjectedSassVariables } from './validate-sass/validate-all'
-import { join } from 'path'
-import assert from 'assert'
 
 const isPublishableBuild = isPublishable()
 const isDevelopmentBuild = getChannel() === 'development'

@@ -1,7 +1,7 @@
-import { ChildProcess, SpawnOptions, spawn } from 'child_process'
+import { SpawnOptions, spawn } from 'child_process'
 import stringArgv from 'string-argv'
 import { promisify } from 'util'
-import { exec, spawn, SpawnOptions } from 'child_process'
+import { exec } from 'child_process'
 import { access, lstat } from 'fs/promises'
 import * as fs from 'fs'
 
