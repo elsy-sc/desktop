@@ -2031,6 +2031,47 @@ export class API {
           response.status
         )
       }
+    } else if (response.status === HttpStatusCode.PaymentRequired) {
+      const errorMsg =
+        (await response.text()) || 'You have reached your quota limit.'
+      throw new CopilotError(errorMsg, response.status)
+    } else if (response.status === HttpStatusCode.Unauthorized) {
+      throw new CopilotError(
+        'Unauthorized: error with authentication.',
+        response.status
+      )
+    } else if (response.status === HttpStatusCode.Forbidden) {
+      const body = await response.text()
+      if (body.includes('unauthorized: not licensed to use Copilot')) {
+        throw new CopilotError(
+          'Unauthorized: not licensed to use Copilot.',
+          response.status
+        )
+      } else if (
+        body.includes(
+          'unauthorized: not authorized to use this Copilot feature',
+          response.status
+        )
+      ) {
+        throw new CopilotError(
+          'Unauthorized: not authorized to use this Copilot feature.',
+          response.status
+        )
+      } else if (
+        body.includes('integration does not have GitHub chat enabled')
+      ) {
+        throw new CopilotError(
+          'Integration does not have GitHub chat enabled.',
+          response.status
+        )
+      } else {
+        throw new CopilotError('Unauthorized: unknown.', response.status)
+      }
+    } else if (response.status === 466) {
+      throw new CopilotError(
+        'Client issue: unsupported API version.',
+        response.status
+      )
     } else if (response.status >= HttpStatusCode.BadRequest) {
       const internalError = `Internal server error, code: ${
         response.status
