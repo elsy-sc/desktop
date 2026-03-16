@@ -5879,9 +5879,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       try {
         await createCommit(repository, message, filesToCommit)
-        for (const f of filesToCommit) {
-          committedFiles.add(f.path)
-        }
       } catch (e) {
         this.emitError(
           new ErrorWithMetadata(e, {
@@ -5893,7 +5890,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     // Remove committed suggestions, keep the rest
-    const remainingSuggestions = suggestions.filter(s => !s.enabled)
+    const remainingSuggestions = latestSuggestions.filter(s => !s.enabled)
 
     if (remainingSuggestions.length > 0) {
       this._setCommitSuggestions(repository, remainingSuggestions)
