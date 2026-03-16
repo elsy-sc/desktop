@@ -42,13 +42,11 @@ export function buildSmartSplitSystemPrompt(
 4. **Do not over-split.** If two hunks in the same file are part of the same logical change (e.g., adding a function + calling it elsewhere in the same file), keep them in one commit.
 5. **Do not under-split.** If a file has changes that serve clearly different purposes, split them into separate commits even if the file appears in both.
 
-## Single-file rule
+## Single-file and multi-commit rule
 
-Each file MUST appear in exactly ONE suggestion. Do NOT put the same file in multiple commits.
-If a file contains multiple logical changes, group them into the commit that best represents the dominant purpose of the changes in that file.
-Mention in the description which secondary changes are also included (e.g., "Also includes minor refactor of X").
-
-When there is only one file, return a single suggestion containing all changes to that file.
+A file MAY appear in multiple suggestions when its hunks represent distinct logical changes.
+When one file contains unrelated hunks (for example feature + refactor + docs), split that one file across multiple commits.
+When there is only one staged file, you may still return multiple suggestions if the hunks are logically independent.
 
 ${commitFormatSection}
 
@@ -61,9 +59,8 @@ ${fileList}
 
 ## Output rules
 
-- **CRITICAL: You have ${filePaths.length} staged files. The union of ALL "files" arrays in your response MUST contain exactly these ${filePaths.length} files. No file may be omitted.**
-- Every staged file MUST appear in exactly one suggestion.
-- A file MUST NOT appear in multiple suggestions.
+- **CRITICAL: You have ${filePaths.length} staged files. Every staged file MUST appear at least once across all "files" arrays. No file may be omitted.**
+- A file may appear in multiple suggestions only when that file is intentionally split by hunks into separate logical commits.
 - Only return a single suggestion if ALL changes in the diff are tightly related to one goal.
 - Be deterministic: given the same diff, the split should be the same. Focus on what the code does, not on arbitrary groupings.
 - Return valid JSON only, no markdown fences, no extra text.
