@@ -2332,28 +2332,51 @@ export class API {
         Array.isArray(parsed.suggestions) &&
         parsed.suggestions.length > 0
       ) {
+        // Keep Smart Split structure as provided by the model (to preserve
+        // multi-commit grouping), and only sanitize file paths minimally.
+        const normalized = parsed.suggestions.map(
+          (suggestion: {
+            readonly summary?: unknown
+            readonly title?: unknown
+            readonly description?: unknown
+            readonly files?: unknown
+          }) => ({
+            summary:
+              typeof suggestion.summary === 'string'
+                ? suggestion.summary
+                : typeof suggestion.title === 'string'
+                ? suggestion.title
+                : '',
+            description:
+              typeof suggestion.description === 'string'
+                ? suggestion.description
+                : '',
+            files: Array.isArray(suggestion.files)
+              ? suggestion.files.filter(
+                  (f: unknown): f is string =>
+                    typeof f === 'string' && filePaths.includes(f)
+                )
+              : [],
+          })
+        )
+
         // Validate that all staged files appear in the response.
         // If any are missing, add them to the last suggestion.
         const assignedFiles = new Set<string>()
-        for (const s of parsed.suggestions) {
-          if (Array.isArray(s.files)) {
-            for (const f of s.files) {
-              assignedFiles.add(f)
-            }
+        for (const s of normalized) {
+          for (const f of s.files) {
+            assignedFiles.add(f)
           }
         }
+
         const missingFiles = filePaths.filter(f => !assignedFiles.has(f))
-        if (missingFiles.length > 0) {
-          const lastSuggestion =
-            parsed.suggestions[parsed.suggestions.length - 1]
-          lastSuggestion.files = [
-            ...(Array.isArray(lastSuggestion.files)
-              ? lastSuggestion.files
-              : []),
-            ...missingFiles,
-          ]
+
+        if (missingFiles.length > 0 && normalized.length > 0) {
+          const lastSuggestion = normalized[normalized.length - 1]
+          lastSuggestion.files = [...lastSuggestion.files, ...missingFiles]
         }
-        return parsed.suggestions
+
+        return normalized
       }
 
       // Fallback: if the API returns the old single-commit format
