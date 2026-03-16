@@ -5783,18 +5783,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     suggestions: ReadonlyArray<ICommitSuggestion>
   ): Promise<boolean> {
-    const enabledSuggestions = suggestions.filter(s => s.enabled)
+    // Always prefer the latest suggestions from repository state to avoid
+    // committing stale suggestions when the UI has just regenerated them.
+    const latestSuggestions =
+      this.repositoryStateCache.get(repository).commitSuggestions ?? suggestions
+
+    const enabledSuggestions = latestSuggestions.filter(s => s.enabled)
 
     if (enabledSuggestions.length === 0) {
       return false
     }
 
-    // Track which files have already been committed to prevent
-    // the same file from being staged in multiple commits
-    // (since we stage entire files, not individual hunks).
-    const committedFiles = new Set<string>()
-
-    for (const suggestion of enabledSuggestions) {
+    for (let i = 0; i < enabledSuggestions.length; i++) {
+      const suggestion = enabledSuggestions[i]
       // Refresh the working directory state before each commit so that we
       // operate on up-to-date file objects (previous commits in the loop
       // change what is still modified in the working directory).
@@ -5807,9 +5808,65 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this.repositoryStateCache.get(repository).changesState
       const allFiles = changesState.workingDirectory.files
 
-      const filesToCommit = allFiles.filter(
-        f => suggestion.files.includes(f.path) && !committedFiles.has(f.path)
-      )
+      const uniquePaths = [...new Set(suggestion.files)]
+      const filesToCommit = new Array<WorkingDirectoryFileChange>()
+
+      for (const path of uniquePaths) {
+        const file = allFiles.find(f => f.path === path)
+        if (!file) {
+          continue
+        }
+
+        // If a file appears in multiple remaining suggestions, stage only
+        // a subset of its current hunks so each suggestion can produce a
+        // separate commit from the same file.
+        const suggestionsRemainingForPath = enabledSuggestions
+          .slice(i)
+          .filter(s => s.files.includes(path)).length
+
+        if (suggestionsRemainingForPath <= 1) {
+          filesToCommit.push(file)
+          continue
+        }
+
+        const diff = await getWorkingDirectoryDiff(repository, file)
+        if (diff.kind !== DiffType.Text && diff.kind !== DiffType.LargeText) {
+          filesToCommit.push(file)
+          continue
+        }
+
+        const totalHunks = diff.hunks.length
+        if (totalHunks === 0) {
+          continue
+        }
+
+        // Keep at least one hunk for each remaining suggestion when possible.
+        const reservedForFuture = Math.max(0, suggestionsRemainingForPath - 1)
+        const maxTakeNow = Math.max(0, totalHunks - reservedForFuture)
+        const proportionalTake = Math.floor(
+          totalHunks / suggestionsRemainingForPath
+        )
+        const hunksToTake = Math.min(maxTakeNow, Math.max(1, proportionalTake))
+
+        if (hunksToTake <= 0) {
+          continue
+        }
+
+        let selection = file.selection.withSelectNone()
+        for (const hunk of diff.hunks.slice(0, hunksToTake)) {
+          selection = selection.withRangeSelection(
+            hunk.unifiedDiffStart,
+            hunk.unifiedDiffEnd - hunk.unifiedDiffStart,
+            true
+          )
+        }
+
+        if (selection.getSelectionType() === DiffSelectionType.None) {
+          continue
+        }
+
+        filesToCommit.push(file.withSelection(selection))
+      }
 
       if (filesToCommit.length === 0) {
         continue
