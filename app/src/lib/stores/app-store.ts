@@ -5914,6 +5914,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // Refresh repository state
     await this._refreshRepository(repository)
 
+    // Refresh history section to ensure all new commits appear in the log
+    await this.refreshHistorySection(repository)
+
     return true
   }
 
